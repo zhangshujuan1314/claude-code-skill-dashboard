@@ -1,0 +1,10 @@
+# Generated output (machine-specific)
+data.json
+skills.generated.html
+scan-report.json
+
+# Dependencies
+node_modules/
+
+# Internal process artifacts
+.superpowers/
