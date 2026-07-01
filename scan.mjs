@@ -156,5 +156,77 @@ try {
   console.warn('HTML generation skipped:', err.message);
 }
 
+// 6. Generate install.sh
+const installPath = path.join(opts.outputDir, 'install.sh');
+generateInstallScript(allPlugins, allSkills, installPath, homeDir);
+
 console.log(`\nDone. ${stats.totalSkills} skills, ${allWarnings.length} diagnostics.`);
 console.log('Run `node serve.mjs` or open `skills.generated.html` (after generation).');
+
+// ── install.sh 生成器 ──
+function generateInstallScript(plugins, skills, outPath, home) {
+  const lines = ['#!/usr/bin/env bash'];
+  lines.push('# 技能一键安装脚本 — 全局安装至 Claude Code');
+  lines.push('# 生成时间: ' + new Date().toISOString());
+  lines.push('set -euo pipefail');
+  lines.push('');
+
+  // Plugin marketplace repos
+  const MARKETPLACE_REPOS = {
+    'superpowers@superpowers-marketplace': 'obra/superpowers-marketplace',
+    'ponytail@ponytail': 'DietrichGebert/ponytail',
+    'ui-ux-pro-max@ui-ux-pro-max-skill': 'nextlevelbuilder/ui-ux-pro-max-skill',
+  };
+
+  // 1. Install plugins
+  const seenPlugins = new Set();
+  for (const p of plugins) {
+    if (seenPlugins.has(p.key)) continue;
+    seenPlugins.add(p.key);
+    const mrepo = MARKETPLACE_REPOS[p.key];
+    if (mrepo) {
+      lines.push(`# 插件: ${p.name} (${p.version || 'latest'})`);
+      lines.push(`claude plugins install ${p.key} 2>/dev/null || echo "  跳过 ${p.key}（可能已安装）"`);
+    } else {
+      lines.push(`# 插件: ${p.key} — 无已知 marketplace，通过 CLI 安装`);
+      lines.push(`claude plugins install ${p.key} 2>/dev/null || echo "  跳过 ${p.key}"`);
+    }
+    lines.push('');
+  }
+
+  // 2. Symlinked skills (from ~/.agents/skills/)
+  const symlinkedSkills = skills.filter(s => s.origin === 'personal' && s.isSymlink);
+  if (symlinkedSkills.length > 0) {
+    lines.push(`# ── 符号链接技能 (${symlinkedSkills.length} 个) ──`);
+    lines.push('# 如果需要安装这些技能，请先克隆源仓库：');
+    lines.push('#   git clone https://github.com/multica-ai/andrej-karpathy-skills ~/.agents/skills');
+    lines.push('# 然后运行以下命令建立符号链接：');
+    lines.push('mkdir -p ~/.claude/skills');
+    for (const s of symlinkedSkills) {
+      const name = s.commandName;
+      lines.push(`ln -sf ~/.agents/skills/${name} ~/.claude/skills/${name} 2>/dev/null || echo "  跳过 ${name}"`);
+    }
+    lines.push('');
+  }
+
+  // 3. Standalone skills — can't auto-install, note them
+  const standalone = skills.filter(s => s.origin === 'personal' && !s.isSymlink);
+  if (standalone.length > 0) {
+    lines.push(`# ── 独立技能 (${standalone.length} 个，需手动恢复) ──`);
+    lines.push('# 以下技能无公开安装源，需通过 女娲 或其他方式重建：');
+    for (const s of standalone) {
+      lines.push(`#   ${s.commandName} — ${(s.description || '').slice(0, 60)}`);
+    }
+    lines.push('');
+  }
+
+  lines.push('echo "✅ 安装完成。"');
+  lines.push(`echo "  已安装 ${seenPlugins.size} 个插件"`);
+  lines.push(`echo "  ${symlinkedSkills.length} 个符号链接技能"`);
+  lines.push(`echo "  ${standalone.length} 个独立技能需手动恢复"`);
+
+  fs.writeFileSync(outPath, lines.join('\n'), 'utf-8');
+  // chmod +x on unix
+  try { fs.chmodSync(outPath, 0o755); } catch {}
+  console.log(`Wrote: ${outPath}`);
+}
