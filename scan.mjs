@@ -246,10 +246,66 @@ function generateInstallScript(plugins, skills, outPath, home) {
     lines.push('');
   }
 
+  // 4. Auto-start setup (开机自启 --watch)
+  const A = (s) => lines.push(s); // short alias
+  A('');
+  A('# ── 开机自启 ──');
+  A('SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"');
+  A('case "$(uname -s 2>/dev/null || echo Windows)" in');
+  A('  Darwin)');
+  A('    mkdir -p ~/Library/LaunchAgents');
+  A('    cat > ~/Library/LaunchAgents/com.skill-dashboard.watch.plist << PLIST');
+  A('<?xml version="1.0" encoding="UTF-8"?>');
+  A('<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">');
+  A('<plist version="1.0"><dict>');
+  A('  <key>Label</key><string>com.skill-dashboard.watch</string>');
+  A('  <key>ProgramArguments</key><array>');
+  A('    <string>/usr/local/bin/node</string>');
+  A('    <string>$SCRIPT_DIR/scan.mjs</string>');
+  A('    <string>--watch</string>');
+  A('  </array>');
+  A('  <key>RunAtLoad</key><true/>');
+  A('  <key>KeepAlive</key><true/>');
+  A('  <key>StandardOutPath</key><string>/tmp/skill-dashboard-watch.log</string>');
+  A('  <key>StandardErrorPath</key><string>/tmp/skill-dashboard-watch.err</string>');
+  A('</dict></plist>');
+  A('PLIST');
+  A('    launchctl bootout gui/$UID/com.skill-dashboard.watch 2>/dev/null || true');
+  A('    launchctl bootstrap gui/$UID ~/Library/LaunchAgents/com.skill-dashboard.watch.plist');
+  A('    echo "  开机自启: launchd (macOS)"');
+  A('    ;;');
+  A('  MINGW*|MSYS*|CYGWIN*|Windows)');
+  A('    STARTUP="$APPDATA/Microsoft/Windows/Start Menu/Programs/Startup"');
+  A('    cat > "$STARTUP/skill-dashboard-watch.vbs" << VBS');
+  A('CreateObject("Wscript.Shell").Run "node """"$SCRIPT_DIR\\scan.mjs"""" --watch", 0, False');
+  A('VBS');
+  A('    echo "  开机自启: Startup 文件夹 (Windows)"');
+  A('    ;;');
+  A('  *)');
+  A('    mkdir -p ~/.config/systemd/user');
+  A('    cat > ~/.config/systemd/user/skill-dashboard-watch.service << UNIT');
+  A('[Unit]');
+  A('Description=Skill Dashboard Watcher');
+  A('');
+  A('[Service]');
+  A('ExecStart=node $SCRIPT_DIR/scan.mjs --watch');
+  A('Restart=on-failure');
+  A('');
+  A('[Install]');
+  A('WantedBy=default.target');
+  A('UNIT');
+  A('    systemctl --user daemon-reload 2>/dev/null');
+  A('    systemctl --user enable --now skill-dashboard-watch.service 2>/dev/null');
+  A('    echo "  开机自启: systemd (Linux)"');
+  A('    ;;');
+  A('esac');
+
+  lines.push('');
   lines.push('echo "✅ 安装完成。"');
   lines.push(`echo "  已安装 ${seenPlugins.size} 个插件"`);
   lines.push(`echo "  ${symlinkedSkills.length} 个符号链接技能"`);
   lines.push(`echo "  ${standalone.length} 个独立技能"`);
+  lines.push('echo "  已配置开机自启 --watch 模式"');
 
   fs.writeFileSync(outPath, lines.join('\n'), 'utf-8');
   try { fs.chmodSync(outPath, 0o755); } catch {}
