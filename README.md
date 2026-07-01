@@ -1,35 +1,53 @@
 # Skill Dashboard — Claude Code 技能可视化管理面板
 
-本地只读的 Claude Code 技能清单仪表盘。一键扫描所有已安装 skill，生成自包含 HTML 面板，支持搜索、筛选、详情查看、一键复制启用/禁用命令。
+本地只读的 Claude Code 技能清单仪表盘。一键扫描已安装 skill，生成自包含 HTML 面板 + 一键安装脚本，支持换电脑便携迁移。
 
 ## 快速开始
 
 ```bash
-# 扫描所有技能 → 生成 data.json + skills.generated.html
+# 扫描所有技能 → 生成 data.json + skills.generated.html + install.sh
 node scan.mjs
 
-# 双击打开仪表盘
+# 打开仪表盘
 start skills.generated.html   # Windows
 open skills.generated.html    # macOS
 
-# 可选：本地开发服务器（stdib only，无依赖）
-node serve.mjs
-# → http://localhost:3000/skills.generated.html
+# 可选：本地开发服务器（Node 标准库，无依赖）
+node serve.mjs                # → http://localhost:3000/skills.generated.html
 ```
+
+## 便携迁移
+
+换到新电脑？一行命令恢复全部 69 个技能：
+
+```bash
+git clone https://github.com/zhangshujuan1314/claude-code-skill-dashboard
+cd claude-code-skill-dashboard
+bash install.sh
+```
+
+自动完成：
+- 3 个插件 → `claude plugins install` 全局安装
+- 36 个符号链接技能 → 克隆 karpathy 仓库 + 建立链接
+- 13 个独立技能 → 从 `standalone-skills/` 便携包恢复（女娲、卡兹克等）
 
 ## 功能
 
-- **技能清单** — 扫描 `~/.claude/skills/`（含符号链接）+ 插件 skills，69 个技能一目了然
-- **搜索筛选** — 按名称 / 描述 / 标签搜索，按来源、可见性、诊断信息筛选，多种排序
-- **详情面板** — 点击卡片查看完整描述、frontmatter 字段、路径、诊断信息
+- **三栏布局** — 左侧紧凑列表 + 右侧详情面板，东方极简风格，全中文界面
+- **全中文描述** — 63 条技能描述中译覆盖，一目了然
+- **安装溯源** — 每个技能的 GitHub 仓库链接 + 触发条件说明
+- **搜索筛选** — 按名称 / 描述搜索，按来源、可见性筛选，多种排序
+- **详情面板** — 点击查看完整描述、基本信息、安装方式、触发条件、frontmatter、诊断
 - **一键操作** — 生成 `claude plugin enable/disable` 命令或 `skillOverrides` JSON 补丁，复制即用
+- **便携导出** — `standalone-skills/` 自动打包独立技能目录
 - **隐私保护** — 本地模式路径显示为 `~`，分享模式 `--privacy share` 隐去绝对路径
-- **完全离线** — 零外部依赖，Node.js 标准库即可运行，HTML 内嵌数据可离线打开
+- **完全离线** — 零外部依赖，Node.js 标准库即可运行，HTML 内嵌数据
+- **响应式** — 768px 以下自动切换单栏
 
 ## 命令参考
 
 ```bash
-# 基础扫描（隐私模式：本地）
+# 基础扫描
 node scan.mjs
 
 # 分享模式（隐藏绝对路径）
@@ -38,30 +56,40 @@ node scan.mjs --privacy share
 # 扫描指定项目
 node scan.mjs --project /path/to/your/repo
 
-# 运行全部测试
+# 运行全部测试（54 个用例）
 node test/run-all.mjs
+```
+
+## 产出文件
+
+```
+skills.generated.html   # 自包含仪表盘，双击打开
+data.json               # 机器可读的技能数据
+scan-report.json        # 诊断与警告报告
+install.sh              # 一键安装脚本
+standalone-skills/      # 独立技能便携包（13 个目录）
 ```
 
 ## 架构
 
 ```
-scan.mjs                  # 主入口，协调扫描流程
+scan.mjs                  # 主入口，协调扫描与导出
 lib/
 ├── parse-frontmatter.mjs # 约束 YAML 解析器
 ├── scan-personal.mjs     # 扫描 ~/.claude/skills/
 ├── scan-plugins.mjs      # 插件扫描（CLI 优先 + 文件系统回退）
 ├── resolve-visibility.mjs# 读取 skillOverrides 解析可见性
 └── generate-html.mjs     # 将 data.json 嵌入 HTML 模板
-template.html             # 仪表盘 UI 模板（纯 CSS + JS）
+template.html             # 仪表盘 UI 模板（东方极简·纯 CSS + JS）
 serve.mjs                 # 开发服务器（Node 标准库）
 ```
 
 ## 设计原则
 
-- **只读** — 绝不自动修改 settings.json 或技能文件，所有操作仅生成命令/补丁供用户手动执行
-- **零依赖** — 仅用 Node.js `fs` / `path` / `child_process` / `crypto` 标准库
-- **容错** — 损坏的符号链接、格式错误的 frontmatter、超大文件等均不导致崩溃，产生诊断信息
-- **自包含** — 生成的 HTML 内嵌全部数据，双击即可打开，不依赖 `file://` 下的网络请求
+- **只读** — 绝不自动修改配置文件，仅生成命令/补丁供手动执行
+- **零依赖** — 仅用 Node.js 标准库
+- **容错** — 损坏的符号链接、格式错误的 frontmatter、超大文件均不崩溃
+- **自包含** — 生成的 HTML 内嵌全部数据，双击即可打开
 
 ## 协议
 
