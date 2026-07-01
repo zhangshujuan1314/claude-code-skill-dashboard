@@ -1,128 +1,126 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="zh-CN">
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1.0">
-<title>Skill Dashboard</title>
+<title>技能清单</title>
 <style>
   *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
   :root {
-    --bg: #0d1117;
-    --bg-card: #161b22;
-    --bg-card-hover: #1c2333;
-    --border: #30363d;
-    --text: #c9d1d9;
-    --text-muted: #8b949e;
-    --accent: #58a6ff;
-    --accent-green: #3fb950;
-    --accent-orange: #d29922;
-    --accent-red: #f85149;
-    --accent-purple: #a371f7;
-    --radius: 8px;
-    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
-    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+    --bg: #fafaf9;
+    --surface: #ffffff;
+    --border: #e8e5e1;
+    --text: #1a1a1a;
+    --text-muted: #8c8c8c;
+    --accent: #2c2c2c;
+    --green: #5b8c5a;
+    --red: #c46b6b;
+    --amber: #c4945a;
+    --purple: #8b7aaa;
+    --blue: #6b8fbf;
+    --font: "PingFang SC", "Microsoft YaHei", "Hiragino Sans", system-ui, -apple-system, sans-serif;
+    --font-mono: "SF Mono", "Cascadia Code", "Consolas", "Courier New", monospace;
+    --radius: 4px;
   }
-  body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; padding: 16px; }
-  header { margin-bottom: 24px; }
-  h1 { font-size: 20px; font-weight: 600; }
-  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
-  .stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; }
-  .stat strong { font-size: 18px; color: var(--accent); display: block; }
-  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
-  .controls input, .controls select { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 12px; font-size: 13px; font-family: var(--font); }
-  .controls input { flex: 1; min-width: 200px; }
-  .controls input::placeholder { color: var(--text-muted); }
-  .controls select { min-width: 140px; }
-  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
-  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color 0.15s; }
-  .card:hover { border-color: var(--accent); }
-  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
-  .card-name { font-weight: 600; font-size: 14px; font-family: var(--font-mono); word-break: break-all; }
-  .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
-  .badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
-  .badge-origin { background: rgba(88,166,255,0.15); color: var(--accent); }
-  .badge-vis-on { background: rgba(63,185,80,0.15); color: var(--accent-green); }
-  .badge-vis-off { background: rgba(248,81,73,0.15); color: var(--accent-red); }
-  .badge-vis-hidden { background: rgba(210,153,34,0.15); color: var(--accent-orange); }
-  .badge-plugin { background: rgba(163,113,247,0.15); color: var(--accent-purple); }
-  .badge-symlink { background: rgba(139,148,158,0.15); color: var(--text-muted); }
-  .badge-warn { background: rgba(210,153,34,0.2); color: var(--accent-orange); }
-  .card-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
-  .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
-  .card-path { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); word-break: break-all; opacity: 0.7; }
-  .card-actions { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
-  .btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-family: var(--font); transition: border-color 0.15s; }
-  .btn:hover { border-color: var(--accent); color: var(--accent); }
-  .btn-copy { background: rgba(88,166,255,0.1); }
-  /* Detail panel overlay */
-  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
-  .overlay.open { display: flex; }
-  .detail { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px; }
-  .detail h2 { font-family: var(--font-mono); font-size: 16px; margin-bottom: 8px; }
-  .detail .close { float: right; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1; }
-  .detail .close:hover { color: var(--text); }
-  .detail dt { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; }
-  .detail dd { font-size: 13px; margin-top: 2px; }
-  .detail code { font-family: var(--font-mono); font-size: 11px; background: var(--bg); padding: 2px 6px; border-radius: 4px; }
-  .detail .diagnostics { margin-top: 16px; }
-  .diagnostic { font-size: 11px; padding: 6px 10px; border-radius: 6px; margin-top: 4px; }
-  .diagnostic.info { background: rgba(88,166,255,0.08); color: var(--accent); }
-  .diagnostic.warning { background: rgba(210,153,34,0.08); color: var(--accent-orange); }
-  .diagnostic.error { background: rgba(248,81,73,0.08); color: var(--accent-red); }
-  .detail pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
-  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
-  .banner { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.3); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px; font-size: 12px; color: var(--accent-orange); }
-  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--accent-green); color: #000; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.2s; z-index: 200; }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); font-size: 13px; line-height: 1.6; }
+  .app { display: flex; height: 100vh; overflow: hidden; }
+  /* 左侧栏 */
+  .sidebar { width: 380px; min-width: 280px; display: flex; flex-direction: column; border-right: 1px solid var(--border); background: var(--surface); }
+  .sidebar-header { padding: 20px 20px 12px; border-bottom: 1px solid var(--border); }
+  .sidebar-header h1 { font-size: 18px; font-weight: 600; letter-spacing: 0.02em; }
+  .sidebar-header .meta { font-size: 12px; color: var(--text-muted); margin-top: 2px; }
+  .sidebar-tools { padding: 10px 16px; border-bottom: 1px solid var(--border); display: flex; gap: 6px; flex-wrap: wrap; }
+  .sidebar-tools input, .sidebar-tools select { border: 1px solid var(--border); border-radius: var(--radius); padding: 6px 10px; font-size: 12px; font-family: var(--font); color: var(--text); background: var(--bg); outline: none; }
+  .sidebar-tools input:focus, .sidebar-tools select:focus { border-color: var(--accent); }
+  .sidebar-tools input { flex: 1; min-width: 0; }
+  .sidebar-tools select { background: var(--bg); cursor: pointer; }
+  .skill-list { flex: 1; overflow-y: auto; }
+  .skill-item { padding: 10px 20px; cursor: pointer; border-left: 3px solid transparent; transition: background 0.1s, border-color 0.1s; display: flex; align-items: baseline; gap: 8px; }
+  .skill-item:hover { background: #f5f4f1; }
+  .skill-item.active { background: #f0efec; border-left-color: var(--accent); }
+  .skill-item-name { font-family: var(--font-mono); font-size: 13px; font-weight: 500; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; flex-shrink: 0; max-width: 200px; }
+  .skill-item-badges { display: flex; gap: 4px; flex-shrink: 0; margin-left: auto; }
+  .badge { font-size: 10px; padding: 1px 5px; border-radius: 3px; font-weight: 500; white-space: nowrap; letter-spacing: 0.02em; }
+  .badge-origin { background: #e8e5e1; color: var(--text-muted); }
+  .badge-on { background: #e3ece2; color: var(--green); }
+  .badge-off { background: #f3e5e5; color: var(--red); }
+  .badge-warn { background: #f5efe3; color: var(--amber); }
+  .badge-plugin { background: #eae7f3; color: var(--purple); }
+  .badge-symlink { color: var(--text-muted); }
+  .badge-hidden { background: #f5efe3; color: var(--amber); }
+  /* 右侧详情 */
+  .detail { flex: 1; overflow-y: auto; padding: 28px 32px; background: var(--bg); }
+  .detail-empty { display: flex; align-items: center; justify-content: center; height: 100%; color: var(--text-muted); font-size: 14px; }
+  .detail h2 { font-family: var(--font-mono); font-size: 18px; font-weight: 600; margin-bottom: 4px; }
+  .detail .detail-ns { font-size: 12px; color: var(--text-muted); margin-bottom: 16px; }
+  .detail .detail-desc { font-size: 14px; line-height: 1.7; color: var(--text); margin-bottom: 20px; white-space: pre-wrap; }
+  .detail dl { display: grid; grid-template-columns: 100px 1fr; gap: 6px 12px; font-size: 12px; }
+  .detail dt { color: var(--text-muted); }
+  .detail dd { color: var(--text); font-family: var(--font-mono); font-size: 11px; word-break: break-all; }
+  .detail .sep { border: none; border-top: 1px solid var(--border); margin: 20px 0; }
+  .detail h3 { font-size: 13px; font-weight: 600; margin-bottom: 8px; }
+  .detail pre { background: var(--surface); border: 1px solid var(--border); border-radius: var(--radius); padding: 12px 16px; font-family: var(--font-mono); font-size: 11px; overflow-x: auto; white-space: pre-wrap; word-break: break-all; }
+  .diagnostics { margin-top: 8px; }
+  .diagnostic { font-size: 11px; padding: 6px 10px; border-radius: var(--radius); margin-top: 4px; }
+  .diagnostic.info { background: #edf3fa; color: var(--blue); }
+  .diagnostic.warning { background: #fdf5ed; color: var(--amber); }
+  .diagnostic.error { background: #fcefef; color: var(--red); }
+  .actions { margin-top: 16px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn { font-size: 11px; padding: 5px 12px; border-radius: var(--radius); border: 1px solid var(--border); background: var(--surface); color: var(--text); cursor: pointer; font-family: var(--font); transition: background 0.1s; }
+  .btn:hover { background: var(--bg); border-color: var(--accent); }
+  .banner { margin: 0 0 0; padding: 8px 20px; background: #fdf5ed; border-bottom: 1px solid #f0dca8; font-size: 11px; color: var(--amber); }
+  .toast { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); background: var(--accent); color: #fff; padding: 8px 20px; border-radius: 20px; font-size: 12px; font-weight: 500; opacity: 0; transition: opacity 0.2s; z-index: 999; pointer-events: none; }
   .toast.show { opacity: 1; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); font-size: 13px; }
+  /* 响应式 */
+  @media (max-width: 768px) {
+    .app { flex-direction: column; }
+    .sidebar { width: 100%; min-width: 0; max-height: 45vh; }
+    .detail { padding: 20px; }
+    .skill-item-name { max-width: 140px; }
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>📊 Skill Dashboard</h1>
-  <div class="stats" id="stats"></div>
-</header>
 
-<div class="banner" id="privacy-banner" style="display:none">
-  ⚠️ This file contains local paths. Do not share publicly.
-</div>
-
-<div class="controls">
-  <input type="text" id="search" placeholder="Search skills..." oninput="render()">
-  <select id="filterOrigin" onchange="render()">
-    <option value="all">Origin: All</option>
-    <option value="personal">Personal</option>
-    <option value="project">Project</option>
-    <option value="plugin">Plugin</option>
-    <option value="bundled">Bundled</option>
-  </select>
-  <select id="filterVisibility" onchange="render()">
-    <option value="all">Visibility: All</option>
-    <option value="visible">Visible (on + name-only)</option>
-    <option value="hidden">Hidden (off + disabled)</option>
-    <option value="on">On</option>
-    <option value="name-only">Name-only</option>
-    <option value="user-invocable-only">User-invocable-only</option>
-    <option value="off">Off</option>
-    <option value="plugin-disabled">Plugin-disabled</option>
-  </select>
-  <select id="filterDiagnostics" onchange="render()">
-    <option value="all">All</option>
-    <option value="warnings-only">Has warnings</option>
-    <option value="broken-symlinks">Broken symlinks</option>
-    <option value="missing-desc">Missing description</option>
-  </select>
-  <select id="sortBy" onchange="render()">
-    <option value="name">Sort: Name</option>
-    <option value="origin">Sort: Origin</option>
-    <option value="visibility">Sort: Visibility</option>
-  </select>
-</div>
-
-<div class="grid" id="grid"></div>
-<div class="empty-state" id="empty" style="display:none">No skills match your filters.</div>
-
-<div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
-  <div class="detail" id="detail"></div>
+<div class="app">
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <h1>技能清单</h1>
+      <div class="meta" id="stats"></div>
+    </div>
+    <div class="banner" id="privacy-banner" style="display:none">
+      ⚠️ 此文件含本地路径，请勿公开分享。
+    </div>
+    <div class="sidebar-tools">
+      <input type="text" id="search" placeholder="搜索名称或描述…" oninput="render()">
+      <select id="filterOrigin" onchange="render()">
+        <option value="all">来源：全部</option>
+        <option value="personal">个人</option>
+        <option value="project">项目</option>
+        <option value="plugin">插件</option>
+      </select>
+      <select id="filterVisibility" onchange="render()">
+        <option value="all">可见性：全部</option>
+        <option value="visible">可见</option>
+        <option value="hidden">隐藏</option>
+        <option value="on">开启</option>
+        <option value="name-only">仅名称</option>
+        <option value="user-invocable-only">仅手动调用</option>
+        <option value="off">关闭</option>
+        <option value="plugin-disabled">插件已禁用</option>
+      </select>
+      <select id="sortBy" onchange="render()">
+        <option value="name">排序：名称</option>
+        <option value="origin">排序：来源</option>
+        <option value="visibility">排序：可见性</option>
+      </select>
+    </div>
+    <div class="skill-list" id="skillList"></div>
+  </div>
+  <div class="detail" id="detailPane">
+    <div class="detail-empty">← 选择左侧技能查看详情</div>
+  </div>
 </div>
 
 <div class="toast" id="toast"></div>
@@ -136,44 +134,60 @@ const data = JSON.parse(document.getElementById('dashboard-data').textContent);
 const skills = data.skills || [];
 const plugins = data.plugins || [];
 const stats = data.stats || {};
+let activeId = null;
 
-// Stats bar
-document.getElementById('stats').innerHTML = `
-  <div class="stat"><strong>${stats.totalSkills || skills.length}</strong>total skills</div>
-  <div class="stat"><strong>${stats.visibleSkills || 0}</strong>visible</div>
-  <div class="stat"><strong>${stats.hiddenSkills || 0}</strong>hidden</div>
-  <div class="stat"><strong>${stats.pluginsTotal || plugins.length}</strong>plugins</div>
-  <div class="stat"><strong>${stats.warnings || 0}</strong>warnings</div>
-`;
+// Stats
+document.getElementById('stats').textContent =
+  `${stats.totalSkills || skills.length} 个技能 · ${stats.visibleSkills || 0} 可见 · ${stats.hiddenSkills || 0} 隐藏 · ${stats.pluginsTotal || plugins.length} 插件 · ${stats.warnings || 0} 警告`;
 
 // Privacy banner
 if (data.scanContext?.privacyMode === 'local') {
   document.getElementById('privacy-banner').style.display = 'block';
 }
 
-// Visibility badge styles
+// Visibility display labels (中文)
+const VIS_LABELS = {
+  'on': '开启',
+  'name-only': '仅名称',
+  'user-invocable-only': '仅手动',
+  'off': '关闭',
+  'plugin-disabled': '已禁用',
+  'disabled-by-policy': '策略禁用',
+  'unknown': '未知',
+};
+
+const ORIGIN_LABELS = {
+  'personal': '个人',
+  'project': '项目',
+  'plugin': '插件',
+  'bundled': '内置',
+  'enterprise': '企业',
+  'nested-project': '嵌套项目',
+  'unknown': '未知',
+};
+
+const STORAGE_LABELS = {
+  'real-directory': '实际目录',
+  'symlink': '符号链接',
+  'command-file': '命令文件',
+  'plugin-root-skill': '插件根技能',
+  'unknown': '未知',
+};
+
 function visBadgeClass(v) {
-  if (v === 'on') return 'badge-vis-on';
-  if (v === 'off' || v === 'plugin-disabled') return 'badge-vis-off';
-  return 'badge-vis-hidden';
+  if (v === 'on') return 'badge-on';
+  if (v === 'off' || v === 'plugin-disabled' || v === 'disabled-by-policy') return 'badge-off';
+  return 'badge-hidden';
 }
 
-function visLabel(v) {
-  if (v === 'plugin-disabled') return 'plugin-disabled';
-  return v;
-}
-
-// Render cards
 function render() {
   const search = (document.getElementById('search').value || '').toLowerCase();
   const filterOrigin = document.getElementById('filterOrigin').value;
   const filterVisibility = document.getElementById('filterVisibility').value;
-  const filterDiag = document.getElementById('filterDiagnostics').value;
   const sortBy = document.getElementById('sortBy').value;
 
   let filtered = [...skills];
 
-  // Search
   if (search) {
     filtered = filtered.filter(s =>
       s.commandName.toLowerCase().includes(search) ||
@@ -183,12 +197,8 @@ function render() {
     );
   }
 
-  // Origin filter
-  if (filterOrigin !== 'all') {
-    filtered = filtered.filter(s => s.origin === filterOrigin);
-  }
+  if (filterOrigin !== 'all') filtered = filtered.filter(s => s.origin === filterOrigin);
 
-  // Visibility filter
   if (filterVisibility === 'visible') {
     filtered = filtered.filter(s => s.visibility === 'on' || s.visibility === 'name-only');
   } else if (filterVisibility === 'hidden') {
@@ -197,16 +207,6 @@ function render() {
     filtered = filtered.filter(s => s.visibility === filterVisibility);
   }
 
-  // Diagnostics filter
-  if (filterDiag === 'warnings-only') {
-    filtered = filtered.filter(s => (s.diagnostics || []).length > 0);
-  } else if (filterDiag === 'broken-symlinks') {
-    filtered = filtered.filter(s => (s.diagnostics || []).some(d => d.code === 'broken-symlink'));
-  } else if (filterDiag === 'missing-desc') {
-    filtered = filtered.filter(s => (s.diagnostics || []).some(d => d.code === 'missing-description'));
-  }
-
-  // Sort
   if (sortBy === 'origin') {
     filtered.sort((a, b) => (a.origin || '').localeCompare(b.origin || ''));
   } else if (sortBy === 'visibility') {
@@ -216,42 +216,70 @@ function render() {
     filtered.sort((a, b) => (a.commandName || '').localeCompare(b.commandName || ''));
   }
 
-  const grid = document.getElementById('grid');
-  const empty = document.getElementById('empty');
-
+  const list = document.getElementById('skillList');
   if (filtered.length === 0) {
-    grid.innerHTML = '';
-    empty.style.display = 'block';
+    list.innerHTML = '<div class="empty-state">没有匹配的技能。</div>';
     return;
   }
-  empty.style.display = 'none';
 
-  grid.innerHTML = filtered.map(s => {
+  list.innerHTML = filtered.map(s => {
     const warnCount = (s.diagnostics || []).filter(d => d.level !== 'info').length;
-    const badges = [];
-    badges.push(`<span class="badge badge-origin">${s.origin}</span>`);
-    badges.push(`<span class="badge ${visBadgeClass(s.visibility)}">${visLabel(s.visibility)}</span>`);
-    if (s.namespace) badges.push(`<span class="badge badge-plugin">${s.namespace}</span>`);
-    if (s.isSymlink) badges.push(`<span class="badge badge-symlink">symlink</span>`);
-    if (warnCount > 0) badges.push(`<span class="badge badge-warn">${warnCount} warn</span>`);
+    let badges = `<span class="badge badge-origin">${esc(ORIGIN_LABELS[s.origin] || s.origin)}</span>`;
+    badges += `<span class="badge ${visBadgeClass(s.visibility)}">${esc(VIS_LABELS[s.visibility] || s.visibility)}</span>`;
+    if (s.namespace) badges += `<span class="badge badge-plugin">${esc(s.namespace)}</span>`;
+    if (s.isSymlink) badges += `<span class="badge badge-symlink">链接</span>`;
+    if (warnCount > 0) badges += `<span class="badge badge-warn">${warnCount}⚠</span>`;
 
-    return `
-    <div class="card" onclick="openDetail('${s.id}')">
-      <div class="card-header">
-        <div class="card-name">${esc(s.commandName)}</div>
-      </div>
-      <div class="badges">${badges.join(' ')}</div>
-      <div class="card-desc">${esc(s.activationText || s.description || '(no description)')}</div>
-      <div class="card-meta">
-        ${s.pluginVersion ? `<span>v${esc(s.pluginVersion)}</span>` : ''}
-        ${s.storage !== 'real-directory' ? `<span>${esc(s.storage)}</span>` : ''}
-      </div>
-      <div class="card-path">${esc(s.pathDisplay || '')}</div>
-      <div class="card-actions" onclick="event.stopPropagation()">
-        ${generateActionButtons(s)}
-      </div>
+    const activeClass = s.id === activeId ? ' active' : '';
+    return `<div class="skill-item${activeClass}" onclick="selectSkill('${s.id}')">
+      <span class="skill-item-name">${esc(s.commandName)}</span>
+      <span class="skill-item-badges">${badges}</span>
     </div>`;
   }).join('');
+}
+
+function selectSkill(id) {
+  activeId = id;
+  const skill = skills.find(s => s.id === id);
+  if (!skill) return;
+
+  const detail = document.getElementById('detailPane');
+  const visLabel = VIS_LABELS[skill.visibility] || skill.visibility;
+
+  let html = `<h2>${esc(skill.commandName)}</h2>`;
+  if (skill.namespace) html += `<div class="detail-ns">${esc(skill.namespace)} · ${esc(ORIGIN_LABELS[skill.origin] || skill.origin)}</div>`;
+  html += `<div class="detail-desc">${esc(skill.description || '（无描述）')}</div>`;
+
+  html += `<hr class="sep"><h3>基本信息</h3><dl>
+    <dt>命令名</dt><dd>${esc(skill.commandName)}</dd>
+    <dt>来源</dt><dd>${esc(ORIGIN_LABELS[skill.origin] || skill.origin)}</dd>
+    <dt>存储方式</dt><dd>${esc(STORAGE_LABELS[skill.storage] || skill.storage)}</dd>
+    <dt>路径</dt><dd>${esc(skill.pathDisplay || skill.localPath || '—')}</dd>
+    ${skill.isSymlink ? `<dt>链接目标</dt><dd>${esc(skill.symlinkTargetDisplay || '—')}</dd>` : ''}
+    ${skill.pluginVersion ? `<dt>插件版本</dt><dd>${esc(skill.pluginVersion)}</dd>` : ''}
+    <dt>模型可调用</dt><dd>${skill.modelInvocable ? '是' : '否'}</dd>
+    <dt>用户可调用</dt><dd>${skill.userInvocable ? '是' : '否'}</dd>
+  </dl>`;
+
+  if ((skill.tags || []).length) {
+    html += `<hr class="sep"><h3>标签</h3><p style="font-size:12px;color:var(--text-muted)">${esc(skill.tags.join(' · '))}</p>`;
+  }
+
+  if (Object.keys(skill.frontmatter || {}).length > 0) {
+    html += `<hr class="sep"><h3>前置元数据</h3><pre>${esc(JSON.stringify(skill.frontmatter, null, 2))}</pre>`;
+  }
+
+  if ((skill.diagnostics || []).length > 0) {
+    html += `<hr class="sep"><h3>诊断</h3><div class="diagnostics">`;
+    for (const d of skill.diagnostics) {
+      const levelNames = { info: '信息', warning: '警告', error: '错误' };
+      html += `<div class="diagnostic ${esc(d.level)}">[${levelNames[d.level] || d.level}] ${esc(d.code)}: ${esc(d.message)}</div>`;
+    }
+    html += '</div>';
+  }
+
+  html += `<div class="actions">${generateActionButtons(skill)}</div>`;
+  detail.innerHTML = html;
 }
 
 function generateActionButtons(skill) {
@@ -261,23 +289,25 @@ function generateActionButtons(skill) {
     const plugin = plugins.find(p => p.key === skill.pluginKey);
     if (plugin) {
       if (plugin.enabled) {
-        buttons.push(`<button class="btn btn-copy" onclick="copyCommand('claude plugin disable ${escAttr(skill.pluginKey)} --scope user')">Disable plugin</button>`);
+        buttons.push(`<button class="btn" onclick="copyCommand('claude plugin disable ${escAttr(skill.pluginKey)} --scope user')">禁用此插件</button>`);
       } else {
-        buttons.push(`<button class="btn btn-copy" onclick="copyCommand('claude plugin enable ${escAttr(skill.pluginKey)} --scope user')">Enable plugin</button>`);
+        buttons.push(`<button class="btn" onclick="copyCommand('claude plugin enable ${escAttr(skill.pluginKey)} --scope user')">启用此插件</button>`);
       }
     }
   } else if (skill.origin === 'personal' || skill.origin === 'project') {
     const dirName = skill.commandName.split(':').pop();
     if (skill.visibility === 'off') {
-      buttons.push(`<button class="btn btn-copy" onclick="copyPatch('${escAttr(dirName)}', 'on')">Enable skill</button>`);
+      buttons.push(`<button class="btn" onclick="copyPatch('${escAttr(dirName)}', 'on')">开启此技能</button>`);
     } else {
-      buttons.push(`<button class="btn btn-copy" onclick="copyPatch('${escAttr(dirName)}', 'off')">Disable skill</button>`);
+      buttons.push(`<button class="btn" onclick="copyPatch('${escAttr(dirName)}', 'off')">关闭此技能</button>`);
     }
-    buttons.push(`<button class="btn btn-copy" onclick="copyPatch('${escAttr(dirName)}', 'name-only')">Name-only</button>`);
+    if (skill.visibility !== 'name-only') {
+      buttons.push(`<button class="btn" onclick="copyPatch('${escAttr(dirName)}', 'name-only')">仅显示名称</button>`);
+    }
   }
 
   if (skill.isSymlink && skill.pathDisplay) {
-    buttons.push(`<button class="btn btn-copy" onclick="copyText('Remove: ${escAttr(skill.pathDisplay)}')">Rm path</button>`);
+    buttons.push(`<button class="btn" onclick="copyText('删除: ${escAttr(skill.pathDisplay)}')">复制路径</button>`);
   }
 
   return buttons.join(' ');
@@ -286,79 +316,12 @@ function generateActionButtons(skill) {
 function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
 function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
 
-// Detail panel
-function openDetail(id) {
-  const skill = skills.find(s => s.id === id);
-  if (!skill) return;
-
-  const plugin = skill.pluginKey ? plugins.find(p => p.key === skill.pluginKey) : null;
-
-  let html = `
-    <button class="close" onclick="closeDetail()">&times;</button>
-    <h2>${esc(skill.commandName)}</h2>
-    <div class="badges" style="margin-bottom:16px">
-      <span class="badge badge-origin">${esc(skill.origin)}</span>
-      <span class="badge ${visBadgeClass(skill.visibility)}">${visLabel(skill.visibility)}</span>
-      ${skill.namespace ? `<span class="badge badge-plugin">${esc(skill.namespace)}</span>` : ''}
-      ${skill.isSymlink ? '<span class="badge badge-symlink">symlink</span>' : ''}
-      <span class="badge badge-origin">${esc(skill.storage)}</span>
-    </div>
-  `;
-
-  // Description
-  html += `<h3>Description</h3><p style="font-size:13px;white-space:pre-wrap">${esc(skill.description || '(none)')}</p>`;
-
-  // Details
-  html += `<dl>
-    <dt>Command name</dt><dd><code>${esc(skill.commandName)}</code></dd>
-    <dt>Origin</dt><dd>${esc(skill.origin)}</dd>
-    <dt>Storage</dt><dd>${esc(skill.storage)}</dd>
-    <dt>Path</dt><dd><code style="word-break:break-all">${esc(skill.pathDisplay || skill.localPath || '')}</code></dd>
-    ${skill.isSymlink ? `<dt>Symlink target</dt><dd><code style="word-break:break-all">${esc(skill.symlinkTargetDisplay || '')}</code></dd>` : ''}
-    ${skill.pluginVersion ? `<dt>Plugin version</dt><dd>${esc(skill.pluginVersion)}</dd>` : ''}
-    <dt>Model-invocable</dt><dd>${skill.modelInvocable ? 'Yes' : 'No'}</dd>
-    <dt>User-invocable</dt><dd>${skill.userInvocable ? 'Yes' : 'No'}</dd>
-    ${skill.tags.length ? `<dt>Tags</dt><dd>${esc(skill.tags.join(', '))}</dd>` : ''}
-  </dl>`;
-
-  // Frontmatter table
-  if (Object.keys(skill.frontmatter || {}).length > 0) {
-    html += `<h3 style="margin-top:16px">Frontmatter</h3><pre>${esc(JSON.stringify(skill.frontmatter, null, 2))}</pre>`;
-  }
-
-  // Diagnostics
-  if ((skill.diagnostics || []).length > 0) {
-    html += '<div class="diagnostics"><h3>Diagnostics</h3>';
-    for (const d of skill.diagnostics) {
-      html += `<div class="diagnostic ${esc(d.level)}">[${esc(d.level.toUpperCase())}] ${esc(d.code)}: ${esc(d.message)}</div>`;
-    }
-    html += '</div>';
-  }
-
-  // Actions
-  html += `<div class="card-actions" style="margin-top:16px">${generateActionButtons(skill)}</div>`;
-
-  document.getElementById('detail').innerHTML = html;
-  document.getElementById('overlay').classList.add('open');
-}
-
-function closeDetail() {
-  document.getElementById('overlay').classList.remove('open');
-}
-
-// Copy utilities
-function copyCommand(cmd) {
-  navigator.clipboard.writeText(cmd).then(() => toast('Copied command!'));
-}
-
+function copyCommand(cmd) { navigator.clipboard.writeText(cmd).then(() => toast('命令已复制')); }
 function copyPatch(skillName, visibility) {
   const patch = JSON.stringify({ skillOverrides: { [skillName]: visibility } }, null, 2);
-  navigator.clipboard.writeText(patch).then(() => toast('Copied settings patch!'));
+  navigator.clipboard.writeText(patch).then(() => toast('配置补丁已复制'));
 }
-
-function copyText(text) {
-  navigator.clipboard.writeText(text).then(() => toast('Copied!'));
-}
+function copyText(text) { navigator.clipboard.writeText(text).then(() => toast('已复制')); }
 
 function toast(msg) {
   const el = document.getElementById('toast');
