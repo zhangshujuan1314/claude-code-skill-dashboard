@@ -145,6 +145,42 @@ if (data.scanContext?.privacyMode === 'local') {
   document.getElementById('privacy-banner').style.display = 'block';
 }
 
+// ── 描述中译（ponytail: 覆盖常见英文描述，懒到只加一条映射）──
+const DESC_ZH = {
+  'brainstorming': '任何创造性工作前必须使用——探索用户意图、需求和设计方案。',
+  'dispatching-parallel-agents': '当有两个以上可独立执行的子任务时使用。',
+  'executing-plans': '当有一套写好的实现计划需要在独立会话中执行时使用。',
+  'finishing-a-development-branch': '实现完成、所有测试通过后，决定如何合并或提交 PR。',
+  'receiving-code-review': '收到代码审查反馈后、实现建议前使用——需要技术严谨性，而非敷衍式同意。',
+  'requesting-code-review': '完成任务、实现主要功能、或合并前，验证工作是否满足要求。',
+  'subagent-driven-development': '在当前会话中执行包含独立任务的实现计划时使用。',
+  'systematic-debugging': '遇到任何 bug、测试失败或意外行为时，在提出修复方案前使用。',
+  'test-driven-development': '实现任何功能或修复 bug 前，先写测试再写代码。',
+  'using-git-worktrees': '开始需要与当前工作区隔离的功能开发时使用。',
+  'using-superpowers': '每次对话开始时使用——建立如何查找和使用 skill 的规则。',
+  'verification-before-completion': '声称工作完成、修复或通过前，必须先运行验证命令并确认输出。',
+  'writing-plans': '有多步骤任务的规格说明或需求时，在写代码前使用。',
+  'writing-skills': '创建新 skill、编辑现有 skill、或验证 skill 部署前使用时。',
+  'ponytail': '强制使用最简单、最短、最小的可行方案。质疑一切是否必要。',
+  'ponytail-audit': '全仓库审查过度工程——列出该删的、该简化的、该用标准库替换的。',
+  'ponytail-debt': '采集代码库中所有 ponytail: 注释，生成技术债务台账。',
+  'ponytail-gain': '展示 ponytail 的实际效果——更少代码、更低成本、更快速度。',
+  'ponytail-help': 'ponytail 所有模式和命令的速查卡片。',
+  'ponytail-review': '专注于过度工程的代码审查——发现可删除的重复实现和多余依赖。',
+  'ui-ux-pro-max': 'UI/UX 设计智能——67 种风格、161 套色板、57 款字体组合、25 类图表。',
+  'banner-design': '社交媒体、广告、网站英雄图、创意素材和印刷品横幅设计。',
+  'brand': '品牌声音、视觉识别、信息框架、资产管理、品牌一致性。',
+  'design': '综合设计 skill——品牌识别、设计令牌、UI 样式、Logo 生成、企业形象。',
+  'design-system': '设计令牌架构、组件规格说明、三层令牌体系。',
+  'slides': '创建带 Chart.js、设计令牌、响应式布局的战略级 HTML 演示文稿。',
+  'ui-styling': '使用 shadcn/ui 组件创建美观、可访问的用户界面。',
+  'ask-matt': '询问哪个 skill 或流程适合你的情况——已安装 skill 的路由器。',
+};
+function zh(skill) {
+  const name = (skill.commandName || '').split(':').pop();
+  return DESC_ZH[name] || skill.description || '';
+}
+
 // Visibility display labels (中文)
 const VIS_LABELS = {
   'on': '开启',
@@ -248,7 +284,7 @@ function selectSkill(id) {
 
   let html = `<h2>${esc(skill.commandName)}</h2>`;
   if (skill.namespace) html += `<div class="detail-ns">${esc(skill.namespace)} · ${esc(ORIGIN_LABELS[skill.origin] || skill.origin)}</div>`;
-  html += `<div class="detail-desc">${esc(skill.description || '（无描述）')}</div>`;
+  html += `<div class="detail-desc">${esc(zh(skill) || '（无描述）')}</div>`;
 
   html += `<hr class="sep"><h3>基本信息</h3><dl>
     <dt>命令名</dt><dd>${esc(skill.commandName)}</dd>
