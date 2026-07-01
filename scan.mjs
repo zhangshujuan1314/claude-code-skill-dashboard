@@ -132,14 +132,6 @@ const dashboardData = {
   warnings: allWarnings,
 };
 
-// ── Try HTML generation (optional) ──
-try {
-  const { generateHtml } = await import('./lib/generate-html.mjs');
-  generateHtml(dashboardData, opts.outputDir);
-} catch (err) {
-  console.warn('HTML generation skipped:', err.message);
-}
-
 // ── Write outputs ──
 const dataJsonPath = path.join(opts.outputDir, 'data.json');
 fs.writeFileSync(dataJsonPath, JSON.stringify(dashboardData, null, 2), 'utf-8');
@@ -153,6 +145,16 @@ const report = {
 };
 fs.writeFileSync(reportPath, JSON.stringify(report, null, 2), 'utf-8');
 console.log(`Wrote: ${reportPath}`);
+
+// 5. Generate HTML (dynamic import — only after generate-html.mjs exists)
+try {
+  const { generateHtml } = await import('./lib/generate-html.mjs');
+  const templatePath = path.join(__dirname, 'template.html');
+  const htmlPath = path.join(opts.outputDir, 'skills.generated.html');
+  generateHtml(dataJsonPath, templatePath, htmlPath);
+} catch (err) {
+  console.warn('HTML generation skipped:', err.message);
+}
 
 console.log(`\nDone. ${stats.totalSkills} skills, ${allWarnings.length} diagnostics.`);
 console.log('Run `node serve.mjs` or open `skills.generated.html` (after generation).');
