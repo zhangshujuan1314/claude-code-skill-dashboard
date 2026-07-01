@@ -156,6 +156,22 @@ try {
   console.warn('HTML generation skipped:', err.message);
 }
 
+// 5b. Export standalone skill directories for portable install
+const standalone = allSkills.filter(s => s.origin === 'personal' && !s.isSymlink);
+const exportDir = path.join(opts.outputDir, 'standalone-skills');
+if (standalone.length > 0 && !fs.existsSync(exportDir)) fs.mkdirSync(exportDir, { recursive: true });
+let exported = 0;
+for (const s of standalone) {
+  const src = s.localPath || s.pathDisplay?.replace('~', homeDir);
+  if (!src || !fs.existsSync(src)) continue;
+  const dest = path.join(exportDir, s.commandName);
+  try {
+    fs.cpSync(src, dest, { recursive: true, force: true });
+    exported++;
+  } catch { /* skip unreadable */ }
+}
+if (exported > 0) console.log(`Exported ${exported} standalone skills to ${exportDir}`);
+
 // 6. Generate install.sh
 const installPath = path.join(opts.outputDir, 'install.sh');
 generateInstallScript(allPlugins, allSkills, installPath, homeDir);
@@ -209,21 +225,26 @@ function generateInstallScript(plugins, skills, outPath, home) {
     lines.push('');
   }
 
-  // 3. Standalone skills — can't auto-install, note them
+  // 3. Standalone skills — copy from portable bundle
   const standalone = skills.filter(s => s.origin === 'personal' && !s.isSymlink);
   if (standalone.length > 0) {
-    lines.push(`# ── 独立技能 (${standalone.length} 个，需手动恢复) ──`);
-    lines.push('# 以下技能无公开安装源，需通过 女娲 或其他方式重建：');
+    lines.push(`# ── 独立技能 (${standalone.length} 个，从便携包恢复) ──`);
+    lines.push('SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd)"');
+    lines.push('if [ -d "$SCRIPT_DIR/standalone-skills" ]; then');
+    lines.push('  mkdir -p ~/.claude/skills');
     for (const s of standalone) {
-      lines.push(`#   ${s.commandName} — ${(s.description || '').slice(0, 60)}`);
+      lines.push(`  cp -r "$SCRIPT_DIR/standalone-skills/${s.commandName}" ~/.claude/skills/${s.commandName} 2>/dev/null || echo "  跳过 ${s.commandName}"`);
     }
+    lines.push('else');
+    lines.push(`  echo "  ⚠ 缺少 standalone-skills/ 目录，${standalone.length} 个独立技能未恢复"`);
+    lines.push('fi');
     lines.push('');
   }
 
   lines.push('echo "✅ 安装完成。"');
   lines.push(`echo "  已安装 ${seenPlugins.size} 个插件"`);
   lines.push(`echo "  ${symlinkedSkills.length} 个符号链接技能"`);
-  lines.push(`echo "  ${standalone.length} 个独立技能需手动恢复"`);
+  lines.push(`echo "  ${standalone.length} 个独立技能"`);
 
   fs.writeFileSync(outPath, lines.join('\n'), 'utf-8');
   // chmod +x on unix

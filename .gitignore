@@ -9,3 +9,4 @@ node_modules/
 # Internal process artifacts
 .superpowers/
 install.sh
+standalone-skills/
