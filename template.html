@@ -216,6 +216,46 @@ function zh(skill) {
   return DESC_ZH[name] || skill.description || '';
 }
 
+// ── 安装来源 ──
+function installInfo(skill) {
+  if (skill.pluginKey) return `claude plugins install ${skill.pluginKey}`;
+  if (skill.origin === 'personal' && skill.isSymlink) return 'git clone 至 ~/.agents/skills/ 或通过 marketplace 安装';
+  return '手动安装至 ~/.claude/skills/ 或由女娲生成';
+}
+
+// ── 触发条件 ──
+const TRIGGERS = {
+  'brainstorming': '任何创造性工作：创建功能、构建组件、添加功能、修改行为',
+  'systematic-debugging': '遇到任何 bug、测试失败、异常行为',
+  'test-driven-development': '实现功能或修复 bug 时',
+  'writing-plans': '有规格说明且需要多步骤任务时',
+  'writing-skills': '创建新 skill、编辑 skill、部署前验证',
+  'using-superpowers': '每次对话开始时',
+  'subagent-driven-development': '执行包含独立任务的实现计划时',
+  'executing-plans': '有写好的实现计划需在独立会话中执行时',
+  'requesting-code-review': '完成任务、实现主要功能、合并前验证',
+  'receiving-code-review': '收到代码审查反馈后、实现建议前',
+  'verification-before-completion': '声称工作完成前',
+  'finishing-a-development-branch': '实现完成、所有测试通过后',
+  'using-git-worktrees': '需要与当前工作区隔离的功能开发时',
+  'dispatching-parallel-agents': '有两个以上独立可并行执行的子任务时',
+  'ponytail': '任何编码任务 / 用户说 ponytail、be lazy、simplest solution',
+  'ponytail-audit': '审查整个代码库的过度工程 / 用户说 audit this codebase',
+  'ponytail-debt': '采集 ponytail: 注释生成技术债务台账',
+  'ponytail-review': '专注于过度工程的代码审查',
+  'ponytail-gain': '展示 ponytail 节省效果',
+  'ponytail-help': 'ponytail 命令速查',
+};
+function triggerText(skill) {
+  const name = (skill.commandName || '').split(':').pop();
+  if (TRIGGERS[name]) return TRIGGERS[name];
+  // 从描述中提取触发词
+  const d = skill.description || '';
+  const m = d.match(/使用当|use when|务必在以下场景|trigger/i);
+  if (m) return '见描述中的触发条件';
+  return '通过 / 命令或自动匹配触发';
+}
+
 // Visibility display labels (中文)
 const VIS_LABELS = {
   'on': '开启',
@@ -330,6 +370,8 @@ function selectSkill(id) {
     ${skill.pluginVersion ? `<dt>插件版本</dt><dd>${esc(skill.pluginVersion)}</dd>` : ''}
     <dt>模型可调用</dt><dd>${skill.modelInvocable ? '是' : '否'}</dd>
     <dt>用户可调用</dt><dd>${skill.userInvocable ? '是' : '否'}</dd>
+    <dt>安装方式</dt><dd style="font-family:var(--font-mono);font-size:12px;color:var(--text-muted)">${esc(installInfo(skill))}</dd>
+    <dt>触发条件</dt><dd>${esc(triggerText(skill))}</dd>
   </dl>`;
 
   if ((skill.tags || []).length) {
