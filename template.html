@@ -216,11 +216,22 @@ function zh(skill) {
   return DESC_ZH[name] || skill.description || '';
 }
 
-// ── 安装来源 ──
+// ── 安装来源（GitHub 链接）──
+const GITHUB = {
+  'superpowers': 'github.com/obra/superpowers-marketplace',
+  'ponytail': 'github.com/DietrichGebert/ponytail',
+  'ui-ux-pro-max': 'github.com/nextlevelbuilder/ui-ux-pro-max-skill',
+};
 function installInfo(skill) {
-  if (skill.pluginKey) return `claude plugins install ${skill.pluginKey}`;
-  if (skill.origin === 'personal' && skill.isSymlink) return 'git clone 至 ~/.agents/skills/ 或通过 marketplace 安装';
-  return '手动安装至 ~/.claude/skills/ 或由女娲生成';
+  if (skill.pluginKey && skill.pluginName) {
+    const repo = GITHUB[skill.pluginName];
+    if (repo) return `https://${repo}`;
+    return `claude plugins install ${skill.pluginKey}`;
+  }
+  if (skill.origin === 'personal' && skill.isSymlink) {
+    return 'https://github.com/multica-ai/andrej-karpathy-skills';
+  }
+  return '本地创建（无公开仓库）';
 }
 
 // ── 触发条件 ──
