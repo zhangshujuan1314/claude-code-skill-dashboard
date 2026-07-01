@@ -34,6 +34,9 @@ for (let i = 0; i < args.length; i++) {
     case '--nested':
       opts.nestedScan = true;
       break;
+    case '--watch':
+      opts.watchMode = true;
+      break;
     case '--output':
       opts.outputDir = args[++i] || __dirname;
       break;
@@ -42,6 +45,7 @@ for (let i = 0; i < args.length; i++) {
   --privacy local|share   Default: local (share redacts absolute paths)
   --project <path>        Scan project skills too
   --nested                Deep scan nested .claude dirs
+  --watch                 Watch for changes, auto-rescan
   --output <dir>          Output directory (default: script dir)
   --help                  Show this help`);
       process.exit(0);
@@ -49,6 +53,7 @@ for (let i = 0; i < args.length; i++) {
 }
 
 // ── Scan ──
+async function doScan() {
 console.log('Scanning skills...');
 const allWarnings = [];
 const allSkills = [];
@@ -247,7 +252,40 @@ function generateInstallScript(plugins, skills, outPath, home) {
   lines.push(`echo "  ${standalone.length} 个独立技能"`);
 
   fs.writeFileSync(outPath, lines.join('\n'), 'utf-8');
-  // chmod +x on unix
   try { fs.chmodSync(outPath, 0o755); } catch {}
   console.log(`Wrote: ${outPath}`);
+}
+
+} // end doScan()
+
+// ── Watch mode ──
+if (opts.watchMode) {
+  const watchDirs = [
+    path.join(homeDir, '.claude', 'skills'),
+    path.join(homeDir, '.claude', 'plugins', 'cache'),
+  ].filter(d => fs.existsSync(d));
+
+  console.log('👁  监听模式 — 技能目录变动时自动重扫');
+  console.log(watchDirs.map(d => '   ' + d.replace(homeDir, '~')).join('\n'));
+  console.log('   Ctrl+C 退出\n');
+
+  await doScan();
+
+  // Debounce: batch rapid changes into one rescan
+  let timer = null;
+  for (const dir of watchDirs) {
+    fs.watch(dir, { recursive: true }, (event, filename) => {
+      if (filename && (filename.endsWith('.md') || filename === '.' || event === 'rename')) {
+        clearTimeout(timer);
+        timer = setTimeout(async () => {
+          console.log(`\n🔄 ${new Date().toLocaleTimeString()} 检测到变动，重新扫描...`);
+          await doScan();
+        }, 2000); // 2s debounce
+      }
+    });
+  }
+  // Keep process alive
+  process.stdin.resume();
+} else {
+  await doScan();
 }
