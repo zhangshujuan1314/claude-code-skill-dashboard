@@ -1,0 +1,374 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Skill Dashboard</title>
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+  :root {
+    --bg: #0d1117;
+    --bg-card: #161b22;
+    --bg-card-hover: #1c2333;
+    --border: #30363d;
+    --text: #c9d1d9;
+    --text-muted: #8b949e;
+    --accent: #58a6ff;
+    --accent-green: #3fb950;
+    --accent-orange: #d29922;
+    --accent-red: #f85149;
+    --accent-purple: #a371f7;
+    --radius: 8px;
+    --font: -apple-system, BlinkMacSystemFont, 'Segoe UI', Helvetica, Arial, sans-serif;
+    --font-mono: 'SFMono-Regular', Consolas, 'Liberation Mono', Menlo, monospace;
+  }
+  body { background: var(--bg); color: var(--text); font-family: var(--font); line-height: 1.5; padding: 16px; }
+  header { margin-bottom: 24px; }
+  h1 { font-size: 20px; font-weight: 600; }
+  .stats { display: flex; gap: 16px; flex-wrap: wrap; margin: 12px 0; }
+  .stat { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 8px 14px; font-size: 13px; }
+  .stat strong { font-size: 18px; color: var(--accent); display: block; }
+  .controls { display: flex; gap: 8px; flex-wrap: wrap; margin-bottom: 16px; }
+  .controls input, .controls select { background: var(--bg-card); border: 1px solid var(--border); border-radius: 6px; color: var(--text); padding: 8px 12px; font-size: 13px; font-family: var(--font); }
+  .controls input { flex: 1; min-width: 200px; }
+  .controls input::placeholder { color: var(--text-muted); }
+  .controls select { min-width: 140px; }
+  .grid { display: grid; grid-template-columns: repeat(auto-fill, minmax(340px, 1fr)); gap: 12px; }
+  .card { background: var(--bg-card); border: 1px solid var(--border); border-radius: var(--radius); padding: 16px; cursor: pointer; transition: border-color 0.15s; }
+  .card:hover { border-color: var(--accent); }
+  .card-header { display: flex; align-items: flex-start; justify-content: space-between; gap: 8px; margin-bottom: 8px; }
+  .card-name { font-weight: 600; font-size: 14px; font-family: var(--font-mono); word-break: break-all; }
+  .badges { display: flex; gap: 4px; flex-wrap: wrap; margin-bottom: 6px; }
+  .badge { font-size: 10px; padding: 1px 6px; border-radius: 10px; font-weight: 500; text-transform: uppercase; letter-spacing: 0.3px; white-space: nowrap; }
+  .badge-origin { background: rgba(88,166,255,0.15); color: var(--accent); }
+  .badge-vis-on { background: rgba(63,185,80,0.15); color: var(--accent-green); }
+  .badge-vis-off { background: rgba(248,81,73,0.15); color: var(--accent-red); }
+  .badge-vis-hidden { background: rgba(210,153,34,0.15); color: var(--accent-orange); }
+  .badge-plugin { background: rgba(163,113,247,0.15); color: var(--accent-purple); }
+  .badge-symlink { background: rgba(139,148,158,0.15); color: var(--text-muted); }
+  .badge-warn { background: rgba(210,153,34,0.2); color: var(--accent-orange); }
+  .card-desc { font-size: 12px; color: var(--text-muted); margin-bottom: 8px; line-height: 1.4; display: -webkit-box; -webkit-line-clamp: 3; -webkit-box-orient: vertical; overflow: hidden; }
+  .card-meta { font-size: 11px; color: var(--text-muted); display: flex; gap: 8px; flex-wrap: wrap; }
+  .card-path { font-family: var(--font-mono); font-size: 10px; color: var(--text-muted); word-break: break-all; opacity: 0.7; }
+  .card-actions { margin-top: 10px; display: flex; gap: 6px; flex-wrap: wrap; }
+  .btn { font-size: 11px; padding: 4px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--bg); color: var(--text); cursor: pointer; font-family: var(--font); transition: border-color 0.15s; }
+  .btn:hover { border-color: var(--accent); color: var(--accent); }
+  .btn-copy { background: rgba(88,166,255,0.1); }
+  /* Detail panel overlay */
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,0.6); z-index: 100; justify-content: center; align-items: center; padding: 20px; }
+  .overlay.open { display: flex; }
+  .detail { background: var(--bg-card); border: 1px solid var(--border); border-radius: 12px; max-width: 640px; width: 100%; max-height: 85vh; overflow-y: auto; padding: 24px; }
+  .detail h2 { font-family: var(--font-mono); font-size: 16px; margin-bottom: 8px; }
+  .detail .close { float: right; background: none; border: none; color: var(--text-muted); font-size: 20px; cursor: pointer; line-height: 1; }
+  .detail .close:hover { color: var(--text); }
+  .detail dt { font-size: 11px; color: var(--text-muted); text-transform: uppercase; letter-spacing: 0.5px; margin-top: 12px; }
+  .detail dd { font-size: 13px; margin-top: 2px; }
+  .detail code { font-family: var(--font-mono); font-size: 11px; background: var(--bg); padding: 2px 6px; border-radius: 4px; }
+  .detail .diagnostics { margin-top: 16px; }
+  .diagnostic { font-size: 11px; padding: 6px 10px; border-radius: 6px; margin-top: 4px; }
+  .diagnostic.info { background: rgba(88,166,255,0.08); color: var(--accent); }
+  .diagnostic.warning { background: rgba(210,153,34,0.08); color: var(--accent-orange); }
+  .diagnostic.error { background: rgba(248,81,73,0.08); color: var(--accent-red); }
+  .detail pre { background: var(--bg); border: 1px solid var(--border); border-radius: 6px; padding: 12px; font-family: var(--font-mono); font-size: 11px; overflow-x: auto; margin-top: 8px; white-space: pre-wrap; word-break: break-all; }
+  .empty-state { text-align: center; padding: 60px 20px; color: var(--text-muted); }
+  .banner { background: rgba(210,153,34,0.1); border: 1px solid rgba(210,153,34,0.3); border-radius: var(--radius); padding: 10px 16px; margin-bottom: 16px; font-size: 12px; color: var(--accent-orange); }
+  .toast { position: fixed; bottom: 20px; right: 20px; background: var(--accent-green); color: #000; padding: 8px 16px; border-radius: 6px; font-size: 12px; font-weight: 600; opacity: 0; transition: opacity 0.2s; z-index: 200; }
+  .toast.show { opacity: 1; }
+</style>
+</head>
+<body>
+<header>
+  <h1>📊 Skill Dashboard</h1>
+  <div class="stats" id="stats"></div>
+</header>
+
+<div class="banner" id="privacy-banner" style="display:none">
+  ⚠️ This file contains local paths. Do not share publicly.
+</div>
+
+<div class="controls">
+  <input type="text" id="search" placeholder="Search skills..." oninput="render()">
+  <select id="filterOrigin" onchange="render()">
+    <option value="all">Origin: All</option>
+    <option value="personal">Personal</option>
+    <option value="project">Project</option>
+    <option value="plugin">Plugin</option>
+    <option value="bundled">Bundled</option>
+  </select>
+  <select id="filterVisibility" onchange="render()">
+    <option value="all">Visibility: All</option>
+    <option value="visible">Visible (on + name-only)</option>
+    <option value="hidden">Hidden (off + disabled)</option>
+    <option value="on">On</option>
+    <option value="name-only">Name-only</option>
+    <option value="user-invocable-only">User-invocable-only</option>
+    <option value="off">Off</option>
+    <option value="plugin-disabled">Plugin-disabled</option>
+  </select>
+  <select id="filterDiagnostics" onchange="render()">
+    <option value="all">All</option>
+    <option value="warnings-only">Has warnings</option>
+    <option value="broken-symlinks">Broken symlinks</option>
+    <option value="missing-desc">Missing description</option>
+  </select>
+  <select id="sortBy" onchange="render()">
+    <option value="name">Sort: Name</option>
+    <option value="origin">Sort: Origin</option>
+    <option value="visibility">Sort: Visibility</option>
+  </select>
+</div>
+
+<div class="grid" id="grid"></div>
+<div class="empty-state" id="empty" style="display:none">No skills match your filters.</div>
+
+<div class="overlay" id="overlay" onclick="if(event.target===this)closeDetail()">
+  <div class="detail" id="detail"></div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script id="dashboard-data" type="application/json">
+{{DATA}}
+</script>
+
+<script>
+const data = JSON.parse(document.getElementById('dashboard-data').textContent);
+const skills = data.skills || [];
+const plugins = data.plugins || [];
+const stats = data.stats || {};
+
+// Stats bar
+document.getElementById('stats').innerHTML = `
+  <div class="stat"><strong>${stats.totalSkills || skills.length}</strong>total skills</div>
+  <div class="stat"><strong>${stats.visibleSkills || 0}</strong>visible</div>
+  <div class="stat"><strong>${stats.hiddenSkills || 0}</strong>hidden</div>
+  <div class="stat"><strong>${stats.pluginsTotal || plugins.length}</strong>plugins</div>
+  <div class="stat"><strong>${stats.warnings || 0}</strong>warnings</div>
+`;
+
+// Privacy banner
+if (data.scanContext?.privacyMode === 'local') {
+  document.getElementById('privacy-banner').style.display = 'block';
+}
+
+// Visibility badge styles
+function visBadgeClass(v) {
+  if (v === 'on') return 'badge-vis-on';
+  if (v === 'off' || v === 'plugin-disabled') return 'badge-vis-off';
+  return 'badge-vis-hidden';
+}
+
+function visLabel(v) {
+  if (v === 'plugin-disabled') return 'plugin-disabled';
+  return v;
+}
+
+// Render cards
+function render() {
+  const search = (document.getElementById('search').value || '').toLowerCase();
+  const filterOrigin = document.getElementById('filterOrigin').value;
+  const filterVisibility = document.getElementById('filterVisibility').value;
+  const filterDiag = document.getElementById('filterDiagnostics').value;
+  const sortBy = document.getElementById('sortBy').value;
+
+  let filtered = [...skills];
+
+  // Search
+  if (search) {
+    filtered = filtered.filter(s =>
+      s.commandName.toLowerCase().includes(search) ||
+      (s.description || '').toLowerCase().includes(search) ||
+      (s.namespace || '').toLowerCase().includes(search) ||
+      (s.tags || []).some(t => t.toLowerCase().includes(search))
+    );
+  }
+
+  // Origin filter
+  if (filterOrigin !== 'all') {
+    filtered = filtered.filter(s => s.origin === filterOrigin);
+  }
+
+  // Visibility filter
+  if (filterVisibility === 'visible') {
+    filtered = filtered.filter(s => s.visibility === 'on' || s.visibility === 'name-only');
+  } else if (filterVisibility === 'hidden') {
+    filtered = filtered.filter(s => s.visibility === 'off' || s.visibility === 'plugin-disabled' || s.visibility === 'disabled-by-policy');
+  } else if (filterVisibility !== 'all') {
+    filtered = filtered.filter(s => s.visibility === filterVisibility);
+  }
+
+  // Diagnostics filter
+  if (filterDiag === 'warnings-only') {
+    filtered = filtered.filter(s => (s.diagnostics || []).length > 0);
+  } else if (filterDiag === 'broken-symlinks') {
+    filtered = filtered.filter(s => (s.diagnostics || []).some(d => d.code === 'broken-symlink'));
+  } else if (filterDiag === 'missing-desc') {
+    filtered = filtered.filter(s => (s.diagnostics || []).some(d => d.code === 'missing-description'));
+  }
+
+  // Sort
+  if (sortBy === 'origin') {
+    filtered.sort((a, b) => (a.origin || '').localeCompare(b.origin || ''));
+  } else if (sortBy === 'visibility') {
+    const visOrder = { 'on': 0, 'name-only': 1, 'user-invocable-only': 2, 'unknown': 3, 'plugin-disabled': 4, 'off': 5 };
+    filtered.sort((a, b) => (visOrder[a.visibility] || 3) - (visOrder[b.visibility] || 3));
+  } else {
+    filtered.sort((a, b) => (a.commandName || '').localeCompare(b.commandName || ''));
+  }
+
+  const grid = document.getElementById('grid');
+  const empty = document.getElementById('empty');
+
+  if (filtered.length === 0) {
+    grid.innerHTML = '';
+    empty.style.display = 'block';
+    return;
+  }
+  empty.style.display = 'none';
+
+  grid.innerHTML = filtered.map(s => {
+    const warnCount = (s.diagnostics || []).filter(d => d.level !== 'info').length;
+    const badges = [];
+    badges.push(`<span class="badge badge-origin">${s.origin}</span>`);
+    badges.push(`<span class="badge ${visBadgeClass(s.visibility)}">${visLabel(s.visibility)}</span>`);
+    if (s.namespace) badges.push(`<span class="badge badge-plugin">${s.namespace}</span>`);
+    if (s.isSymlink) badges.push(`<span class="badge badge-symlink">symlink</span>`);
+    if (warnCount > 0) badges.push(`<span class="badge badge-warn">${warnCount} warn</span>`);
+
+    return `
+    <div class="card" onclick="openDetail('${s.id}')">
+      <div class="card-header">
+        <div class="card-name">${esc(s.commandName)}</div>
+      </div>
+      <div class="badges">${badges.join(' ')}</div>
+      <div class="card-desc">${esc(s.activationText || s.description || '(no description)')}</div>
+      <div class="card-meta">
+        ${s.pluginVersion ? `<span>v${esc(s.pluginVersion)}</span>` : ''}
+        ${s.storage !== 'real-directory' ? `<span>${esc(s.storage)}</span>` : ''}
+      </div>
+      <div class="card-path">${esc(s.pathDisplay || '')}</div>
+      <div class="card-actions" onclick="event.stopPropagation()">
+        ${generateActionButtons(s)}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+function generateActionButtons(skill) {
+  const buttons = [];
+
+  if (skill.origin === 'plugin' && skill.pluginKey) {
+    const plugin = plugins.find(p => p.key === skill.pluginKey);
+    if (plugin) {
+      if (plugin.enabled) {
+        buttons.push(`<button class="btn btn-copy" onclick="copyCommand('claude plugin disable ${escAttr(skill.pluginKey)} --scope user')">Disable plugin</button>`);
+      } else {
+        buttons.push(`<button class="btn btn-copy" onclick="copyCommand('claude plugin enable ${escAttr(skill.pluginKey)} --scope user')">Enable plugin</button>`);
+      }
+    }
+  } else if (skill.origin === 'personal' || skill.origin === 'project') {
+    const dirName = skill.commandName.split(':').pop();
+    if (skill.visibility === 'off') {
+      buttons.push(`<button class="btn btn-copy" onclick="copyPatch('${escAttr(dirName)}', 'on')">Enable skill</button>`);
+    } else {
+      buttons.push(`<button class="btn btn-copy" onclick="copyPatch('${escAttr(dirName)}', 'off')">Disable skill</button>`);
+    }
+    buttons.push(`<button class="btn btn-copy" onclick="copyPatch('${escAttr(dirName)}', 'name-only')">Name-only</button>`);
+  }
+
+  if (skill.isSymlink && skill.pathDisplay) {
+    buttons.push(`<button class="btn btn-copy" onclick="copyText('Remove: ${escAttr(skill.pathDisplay)}')">Rm path</button>`);
+  }
+
+  return buttons.join(' ');
+}
+
+function esc(s) { return (s || '').replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;').replace(/"/g,'&quot;'); }
+function escAttr(s) { return (s || '').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/'/g,'&#39;'); }
+
+// Detail panel
+function openDetail(id) {
+  const skill = skills.find(s => s.id === id);
+  if (!skill) return;
+
+  const plugin = skill.pluginKey ? plugins.find(p => p.key === skill.pluginKey) : null;
+
+  let html = `
+    <button class="close" onclick="closeDetail()">&times;</button>
+    <h2>${esc(skill.commandName)}</h2>
+    <div class="badges" style="margin-bottom:16px">
+      <span class="badge badge-origin">${esc(skill.origin)}</span>
+      <span class="badge ${visBadgeClass(skill.visibility)}">${visLabel(skill.visibility)}</span>
+      ${skill.namespace ? `<span class="badge badge-plugin">${esc(skill.namespace)}</span>` : ''}
+      ${skill.isSymlink ? '<span class="badge badge-symlink">symlink</span>' : ''}
+      <span class="badge badge-origin">${esc(skill.storage)}</span>
+    </div>
+  `;
+
+  // Description
+  html += `<h3>Description</h3><p style="font-size:13px;white-space:pre-wrap">${esc(skill.description || '(none)')}</p>`;
+
+  // Details
+  html += `<dl>
+    <dt>Command name</dt><dd><code>${esc(skill.commandName)}</code></dd>
+    <dt>Origin</dt><dd>${esc(skill.origin)}</dd>
+    <dt>Storage</dt><dd>${esc(skill.storage)}</dd>
+    <dt>Path</dt><dd><code style="word-break:break-all">${esc(skill.pathDisplay || skill.localPath || '')}</code></dd>
+    ${skill.isSymlink ? `<dt>Symlink target</dt><dd><code style="word-break:break-all">${esc(skill.symlinkTargetDisplay || '')}</code></dd>` : ''}
+    ${skill.pluginVersion ? `<dt>Plugin version</dt><dd>${esc(skill.pluginVersion)}</dd>` : ''}
+    <dt>Model-invocable</dt><dd>${skill.modelInvocable ? 'Yes' : 'No'}</dd>
+    <dt>User-invocable</dt><dd>${skill.userInvocable ? 'Yes' : 'No'}</dd>
+    ${skill.tags.length ? `<dt>Tags</dt><dd>${esc(skill.tags.join(', '))}</dd>` : ''}
+  </dl>`;
+
+  // Frontmatter table
+  if (Object.keys(skill.frontmatter || {}).length > 0) {
+    html += `<h3 style="margin-top:16px">Frontmatter</h3><pre>${esc(JSON.stringify(skill.frontmatter, null, 2))}</pre>`;
+  }
+
+  // Diagnostics
+  if ((skill.diagnostics || []).length > 0) {
+    html += '<div class="diagnostics"><h3>Diagnostics</h3>';
+    for (const d of skill.diagnostics) {
+      html += `<div class="diagnostic ${esc(d.level)}">[${esc(d.level.toUpperCase())}] ${esc(d.code)}: ${esc(d.message)}</div>`;
+    }
+    html += '</div>';
+  }
+
+  // Actions
+  html += `<div class="card-actions" style="margin-top:16px">${generateActionButtons(skill)}</div>`;
+
+  document.getElementById('detail').innerHTML = html;
+  document.getElementById('overlay').classList.add('open');
+}
+
+function closeDetail() {
+  document.getElementById('overlay').classList.remove('open');
+}
+
+// Copy utilities
+function copyCommand(cmd) {
+  navigator.clipboard.writeText(cmd).then(() => toast('Copied command!'));
+}
+
+function copyPatch(skillName, visibility) {
+  const patch = JSON.stringify({ skillOverrides: { [skillName]: visibility } }, null, 2);
+  navigator.clipboard.writeText(patch).then(() => toast('Copied settings patch!'));
+}
+
+function copyText(text) {
+  navigator.clipboard.writeText(text).then(() => toast('Copied!'));
+}
+
+function toast(msg) {
+  const el = document.getElementById('toast');
+  el.textContent = msg;
+  el.classList.add('show');
+  setTimeout(() => el.classList.remove('show'), 2000);
+}
+
+// Init
+render();
+</script>
+</body>
+</html>
